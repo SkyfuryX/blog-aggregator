@@ -15,7 +15,7 @@ type Config struct {
 }
 
 func getConfigFilePath() (string, error) {
-	homePath, err := os.Getwd()
+	homePath, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
 	}
