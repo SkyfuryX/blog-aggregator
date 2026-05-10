@@ -4,9 +4,11 @@ import (
 	"errors"
 
 	"github.com/SkyfuryX/blog-aggregator/internal/config"
+	"github.com/SkyfuryX/blog-aggregator/internal/database"
 )
 
 type state struct{
+	db *database.Queries
 	config *config.Config
 }
 
