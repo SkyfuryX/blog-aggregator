@@ -97,7 +97,8 @@ func (q *Queries) GetUsers(ctx context.Context) ([]User, error) {
 }
 
 const reset = `-- name: Reset :exec
-TRUNCATE TABLE users
+DELETE FROM users
+WHERE 1=1
 `
 
 func (q *Queries) Reset(ctx context.Context) error {

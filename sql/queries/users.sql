@@ -16,5 +16,5 @@ WHERE name = $1;
 SELECT * FROM users;
 
 -- name: Reset :exec
-TRUNCATE TABLE users;
-/* Yes, I am aware this is typically a terrible idea */
+DELETE FROM users
+WHERE 1=1;

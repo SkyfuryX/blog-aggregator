@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/SkyfuryX/blog-aggregator/internal/database"
+	"github.com/SkyfuryX/blog-aggregator/internal/rss"
 	"github.com/google/uuid"
 )
 
@@ -45,7 +46,7 @@ func handlerRegister(s *state, cmd command) error {
 		return err
 	}
 	s.config.SetUser(user.Name)
-	fmt.Printf("User created successfullly.\n%v\n", user)
+	fmt.Printf("User created successfully.\n%v\n", user)
 	return nil
 }
 
@@ -68,6 +69,57 @@ func handlerUsers(s *state, cmd command) error {
 		} else {
 			fmt.Printf("* %v\n", user.Name)
 		}
+	}
+	return nil
+}
+
+func agg(s *state, cmd command) error {
+	url := "https://www.wagslane.dev/index.xml"
+
+	feed, err := rss.FetchFeed(context.Background(), url)
+	if err != nil {
+		return err
+	}
+
+	fmt.Print(feed)
+
+	return nil
+}
+
+func addFeed(s *state, cmd command) error {
+	if len(cmd.args) != 2 {
+		return fmt.Errorf("<name> and <url> are required")
+	}
+
+	user, err := s.db.GetUser(context.Background(), s.config.Current_user)
+	if err != nil {
+		return err
+	}
+
+	feed, err := s.db.InsertFeed(context.Background(), database.InsertFeedParams{
+		Name:      cmd.args[0],
+		Url:       cmd.args[1],
+		UserID:    user.ID,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	})
+
+	if err != nil {
+		return err
+	}
+
+	fmt.Print(feed)
+	return nil
+}
+
+func getFeeds(s *state, cmd command) error {
+	feeds, err := s.db.GetFeeds(context.Background())
+	if err != nil {
+		return err
+	}
+
+	for _, feed := range feeds {
+		fmt.Printf("Name: %v, URL: %v, Created By: %v\n", feed.Name, feed.Url, feed.Name_2.String)
 	}
 	return nil
 }

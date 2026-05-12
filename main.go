@@ -1,15 +1,15 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"os"
-	"database/sql"
-		
-	database "github.com/SkyfuryX/blog-aggregator/internal/database"
-	config "github.com/SkyfuryX/blog-aggregator/internal/config"
-)
 
-import _ "github.com/lib/pq"
+	config "github.com/SkyfuryX/blog-aggregator/internal/config"
+	database "github.com/SkyfuryX/blog-aggregator/internal/database"
+
+	_ "github.com/lib/pq"
+)
 
 func main() {
 	cfg, err := config.Read()
@@ -21,20 +21,23 @@ func main() {
 		fmt.Print("Not enough arguements provided\n")
 		os.Exit(1)
 	}
-	
+
 	db, err := sql.Open("postgres", cfg.Db_URL)
 	if err != nil {
 		fmt.Print("Error connecting to database")
 		os.Exit(1)
 	}
 	dbQueries := database.New(db)
-	
+
 	s := state{dbQueries, &cfg}
 	cmds := commands{make(map[string]func(*state, command) error)}
 	cmds.register("login", handlerLogin)
 	cmds.register("register", handlerRegister)
 	cmds.register("reset", handlerReset)
 	cmds.register("users", handlerUsers)
+	cmds.register("agg", agg)
+	cmds.register("addfeed", addFeed)
+	cmds.register("feeds", getFeeds)
 	cmd := command{
 		name: os.Args[1],
 		args: os.Args[2:],
