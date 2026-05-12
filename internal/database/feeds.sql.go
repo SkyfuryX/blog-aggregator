@@ -61,32 +61,22 @@ func (q *Queries) GetFeeds(ctx context.Context) ([]GetFeedsRow, error) {
 }
 
 const insertFeed = `-- name: InsertFeed :one
-INSERT INTO feeds (name, url, user_id, created_at, updated_at) Values (
+INSERT INTO feeds (name, url, user_id) Values (
     $1,
     $2,
-    $3,
-    $4,
-    $5
+    $3
 )
 RETURNING id, name, url, user_id, created_at, updated_at
 `
 
 type InsertFeedParams struct {
-	Name      string
-	Url       string
-	UserID    uuid.UUID
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	Name   string
+	Url    string
+	UserID uuid.UUID
 }
 
 func (q *Queries) InsertFeed(ctx context.Context, arg InsertFeedParams) (Feed, error) {
-	row := q.db.QueryRowContext(ctx, insertFeed,
-		arg.Name,
-		arg.Url,
-		arg.UserID,
-		arg.CreatedAt,
-		arg.UpdatedAt,
-	)
+	row := q.db.QueryRowContext(ctx, insertFeed, arg.Name, arg.Url, arg.UserID)
 	var i Feed
 	err := row.Scan(
 		&i.ID,

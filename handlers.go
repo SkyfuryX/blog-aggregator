@@ -73,7 +73,7 @@ func handlerUsers(s *state, cmd command) error {
 	return nil
 }
 
-func agg(s *state, cmd command) error {
+func handlerAgg(s *state, cmd command) error {
 	url := "https://www.wagslane.dev/index.xml"
 
 	feed, err := rss.FetchFeed(context.Background(), url)
@@ -86,7 +86,7 @@ func agg(s *state, cmd command) error {
 	return nil
 }
 
-func addFeed(s *state, cmd command) error {
+func handlerAddFeed(s *state, cmd command) error {
 	if len(cmd.args) != 2 {
 		return fmt.Errorf("<name> and <url> are required")
 	}
@@ -100,8 +100,6 @@ func addFeed(s *state, cmd command) error {
 		Name:      cmd.args[0],
 		Url:       cmd.args[1],
 		UserID:    user.ID,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
 	})
 
 	if err != nil {
@@ -112,7 +110,7 @@ func addFeed(s *state, cmd command) error {
 	return nil
 }
 
-func getFeeds(s *state, cmd command) error {
+func handlerGetFeeds(s *state, cmd command) error {
 	feeds, err := s.db.GetFeeds(context.Background())
 	if err != nil {
 		return err
