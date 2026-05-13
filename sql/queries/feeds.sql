@@ -29,7 +29,7 @@ INNER JOIN users u
 ON u.id = ff.user_id
 INNER JOIN feeds f
 ON ff.feed_id = f.id
-WHERE u.name = $1;
+WHERE ff.user_id = $1;
 
 -- name: CreateFeedFollow :one
 WITH inserted_into_feed_follow AS (
