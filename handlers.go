@@ -73,15 +73,44 @@ func handlerUsers(s *state, cmd command) error {
 	return nil
 }
 
-func handlerAgg(s *state, cmd command) error {
-	url := "https://www.wagslane.dev/index.xml"
-
-	feed, err := rss.FetchFeed(context.Background(), url)
+func handlerAgg(s *state, cmd command, user database.User) error {
+	if len(cmd.args) != 1 {
+		return fmt.Errorf("Provide a time between requests. ex: 1s, 1m, 1h")
+	}
+	timeBetweenRequests, err := time.ParseDuration(cmd.args[0])
 	if err != nil {
 		return err
 	}
 
-	fmt.Print(feed)
+	fmt.Printf("Collecting feeds every %v\n", cmd.args[0])
+	ticker := time.NewTicker(timeBetweenRequests)
+	for ; ; <-ticker.C {
+		feed, err := s.db.GetNextFeedToFetch(context.Background(), user.ID)
+		if err != nil {
+			return err
+		}
+
+		err = s.db.MarkFeedFetched(context.Background(), feed.ID)
+		if err != nil {
+			return err
+		}
+
+		content, err := rss.FetchFeed(context.Background(), feed.Url)
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("%v\n", content.Channel.Title)
+		fmt.Printf("%v\n", content.Channel.Description)
+		fmt.Printf("%v\n\n", content.Channel.Link)
+		for _, item := range content.Channel.Item {
+			fmt.Printf("%v\n", item.Title)
+			fmt.Printf("%v\n", item.Description)
+			fmt.Printf("%v\n", item.Link)
+			fmt.Printf("%v\n", item.PubDate)
+			fmt.Print("\n")
+		}
+	}
 
 	return nil
 }
@@ -108,7 +137,7 @@ func handlerAddFeed(s *state, cmd command, user database.User) error {
 		return err
 	}
 
-	fmt.Print(result)
+	fmt.Printf("%v\n", result)
 	return nil
 }
 
@@ -156,5 +185,27 @@ func handlerFollowing(s *state, cmd command, user database.User) error {
 		fmt.Printf("Name: %v, User: %v\n", feed.FeedName, feed.UserName)
 	}
 
+	return nil
+}
+
+func handlerUnfollow(s *state, cmd command, user database.User) error {
+	if len(cmd.args) < 1 {
+		return fmt.Errorf("Provide a url to unfollow")
+	}
+
+	feed, err := s.db.GetFeed(context.Background(), cmd.args[0])
+	if err != nil {
+		return err
+	}
+
+	err = s.db.DeleteFeedFollow(context.Background(), database.DeleteFeedFollowParams{
+		FeedID: feed.ID,
+		UserID: user.ID,
+	})
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Follow deleted: %v", feed.Name)
 	return nil
 }
