@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/SkyfuryX/blog-aggregator/internal/database"
@@ -100,15 +101,29 @@ func handlerAgg(s *state, cmd command, user database.User) error {
 			return err
 		}
 
-		fmt.Printf("%v\n", content.Channel.Title)
-		fmt.Printf("%v\n", content.Channel.Description)
-		fmt.Printf("%v\n\n", content.Channel.Link)
 		for _, item := range content.Channel.Item {
-			fmt.Printf("%v\n", item.Title)
-			fmt.Printf("%v\n", item.Description)
-			fmt.Printf("%v\n", item.Link)
-			fmt.Printf("%v\n", item.PubDate)
-			fmt.Print("\n")
+			timestamp, err := time.Parse(
+				time.RFC1123Z,
+				item.PubDate,
+			)
+			if err != nil {
+				return err
+			}
+
+			_, err = s.db.CreatePost(context.Background(), database.CreatePostParams{
+				Title:       item.Title,
+				Url:         item.Link,
+				Description: sql.NullString{String: item.Description, Valid: true},
+				PublishedAt: sql.NullTime{Time: timestamp, Valid: true},
+				FeedID:      feed.ID,
+			})
+			if err != nil {
+				if errors.Is(err, sql.ErrNoRows) {
+					fmt.Printf("Post already added: %v\n", item.Link)
+				} else {
+					return err
+				}
+			}
 		}
 	}
 
@@ -207,5 +222,34 @@ func handlerUnfollow(s *state, cmd command, user database.User) error {
 	}
 
 	fmt.Printf("Follow deleted: %v", feed.Name)
+	return nil
+}
+
+func handlerBrowse(s *state, cmd command, user database.User) error {
+	defaultLimit := 2
+	if len(cmd.args) > 0 {
+		limit, err := strconv.Atoi(cmd.args[0])
+		if err != nil {
+			fmt.Print("Non-integer arg provded, defauly limit of 2 will be used")
+		} else {
+			defaultLimit = limit
+		}
+	}
+
+	posts, err := s.db.GetPostsForUser(context.Background(), database.GetPostsForUserParams{
+		UserID: user.ID,
+		Limit:  int32(defaultLimit),
+	})
+	if err != nil {
+		return err
+	}
+
+	for _, post := range posts {
+		fmt.Printf("Title: %v\n", post.Title)
+		fmt.Printf("Desc: %v\n", post.Description.String)
+		fmt.Printf("URL: %v\n", post.Url)
+		fmt.Printf("Published: %v\n\n", post.PublishedAt.Time)
+	}
+
 	return nil
 }
